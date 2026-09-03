@@ -1,0 +1,17 @@
+{
+    "id": "37D0D678-9A68-4C70-87A4-36D60DE57E78",
+    "name": "Saugroboter360",
+    "type": 3,
+    "vendor": "360 (Qihoo)",
+    "aliases": [
+        "360 Saugroboter",
+        "360 S6",
+        "360 S7",
+        "360 Vacuum"
+    ],
+    "url": "https://github.com/teesmokr/symcon-staubsauger-s6-7",
+    "parentRequirements": [],
+    "childRequirements": [],
+    "implemented": [],
+    "prefix": "SR360"
+}

@@ -1,0 +1,46 @@
+{
+    "elements": [
+        {
+            "type": "ValidationTextBox",
+            "name": "Cookie",
+            "caption": "360 Cookie",
+            "multiline": true
+        },
+        {
+            "type": "ValidationTextBox",
+            "name": "Serial",
+            "caption": "Serial number (SN)"
+        },
+        {
+            "type": "NumberSpinner",
+            "name": "UpdateInterval",
+            "caption": "Update interval (seconds)",
+            "minimum": 0,
+            "suffix": "s"
+        }
+    ],
+    "actions": [
+        {
+            "type": "Button",
+            "caption": "Show devices",
+            "onClick": "echo SR360_LoadDevices($id);"
+        },
+        {
+            "type": "Button",
+            "caption": "Update status now",
+            "onClick": "SR360_UpdateStatus($id);"
+        }
+    ],
+    "status": [
+        {
+            "code": 102,
+            "icon": "active",
+            "caption": "Active"
+        },
+        {
+            "code": 104,
+            "icon": "inactive",
+            "caption": "Please enter cookie and serial number"
+        }
+    ]
+}
