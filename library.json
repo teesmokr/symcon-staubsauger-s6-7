@@ -1,6 +1,7 @@
 {
     "id": "{4795B750-FEC1-4502-A37F-5372AC719385}",
     "author": "teesmokr",
+    "name": "360 Saugroboter S6 S7",
     "url": "https://github.com/teesmokr/symcon-staubsauger-s6-7",
     "compatibility": {
         "version": "6.0"
