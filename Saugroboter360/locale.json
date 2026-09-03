@@ -1,0 +1,38 @@
+{
+    "translations": {
+        "de": {
+            "360 Cookie": "360 Cookie",
+            "Serial number (SN)": "Seriennummer (SN)",
+            "Update interval (seconds)": "Aktualisierungsintervall (Sekunden)",
+            "Show devices": "Geräte anzeigen",
+            "Update status now": "Status jetzt aktualisieren",
+            "Active": "Aktiv",
+            "Please enter cookie and serial number": "Bitte Cookie und Seriennummer eingeben",
+            "Request failed. Please check the cookie.": "Anfrage fehlgeschlagen. Bitte den Cookie prüfen.",
+
+            "Control": "Steuerung",
+            "Suction level": "Saugstufe",
+            "Locate robot": "Roboter orten",
+            "Status": "Status",
+            "Battery": "Batterie",
+            "Online": "Online",
+
+            "Start": "Starten",
+            "Pause": "Pause",
+            "Stop": "Stopp",
+            "Charge": "Laden",
+
+            "Quiet": "Leise",
+            "Auto": "Auto",
+            "Strong": "Stark",
+            "Max": "Maximal",
+
+            "Idle": "Bereit",
+            "Cleaning": "Reinigt",
+            "Paused": "Pausiert",
+            "Returning to dock": "Fährt zur Ladestation",
+            "Charged": "Aufgeladen",
+            "Error": "Fehler"
+        }
+    }
+}
