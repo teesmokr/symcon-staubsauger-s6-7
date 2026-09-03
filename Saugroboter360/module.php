@@ -236,18 +236,16 @@ class Saugroboter360 extends IPSModule
         $initial = json_encode($this->getVisualizationPayload());
 
         $html = '<style>
-    .sr360 { box-sizing: border-box; padding: 16px; font-family: inherit; color: inherit; }
+    .sr360 { box-sizing: border-box; padding: 16px; font-family: inherit; color: inherit;
+        display: flex; flex-direction: column; align-items: center; }
     .sr360 * { box-sizing: border-box; }
-    .sr360-head { display: flex; align-items: center; gap: 12px; }
-    .sr360-icon { width: 46px; height: 46px; flex: 0 0 auto; opacity: 0.9; }
-    .sr360-info { min-width: 0; }
-    .sr360-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .sr360-status { font-size: 13px; opacity: 0.75; margin-top: 2px; }
-    .sr360-battery { display: flex; align-items: center; gap: 8px; margin: 14px 0 4px; font-size: 13px; }
-    .sr360-batbar { flex: 1; height: 6px; border-radius: 3px; background: rgba(127,127,127,0.25); overflow: hidden; }
-    .sr360-batfill { height: 100%; width: 0; background: #34c759; transition: width 0.4s ease; }
-    .sr360-batval { min-width: 36px; text-align: right; opacity: 0.85; }
-    .sr360-btns { display: flex; gap: 8px; margin-top: 14px; }
+    .sr360-robot { position: relative; width: 160px; max-width: 60vw; aspect-ratio: 1 / 1; margin: 4px 0 6px; }
+    .sr360-robot svg { width: 100%; height: 100%; display: block; opacity: 0.9; }
+    .sr360-overlay { position: absolute; inset: 0; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; text-align: center; gap: 4px; padding: 0 12%; }
+    .sr360-status { font-size: 15px; font-weight: 600; line-height: 1.15; }
+    .sr360-batval { font-size: 13px; opacity: 0.75; }
+    .sr360-btns { display: flex; gap: 8px; margin-top: 10px; width: 100%; }
     .sr360-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
         padding: 10px 4px; border: none; border-radius: 10px; cursor: pointer;
         background: rgba(127,127,127,0.15); color: inherit; font: inherit; font-size: 12px;
@@ -260,22 +258,18 @@ class Saugroboter360 extends IPSModule
     .sr360-btn.dock  svg { color: #0a84ff; }
 </style>
 <div class="sr360">
-    <div class="sr360-head">
-        <svg class="sr360-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="24" cy="24" r="21" stroke="currentColor" stroke-width="2.5"/>
-            <circle cx="24" cy="24" r="6" fill="currentColor" opacity="0.35"/>
-            <circle cx="18" cy="14" r="2.2" fill="currentColor"/>
-            <circle cx="24" cy="14" r="2.2" fill="currentColor"/>
+    <div class="sr360-robot">
+        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="46" stroke="currentColor" stroke-width="3" opacity="0.85"/>
+            <circle cx="50" cy="50" r="39" stroke="currentColor" stroke-width="1.5" opacity="0.25"/>
+            <circle cx="41" cy="17" r="3.4" fill="currentColor"/>
+            <circle cx="50" cy="16" r="3.4" fill="currentColor"/>
+            <circle cx="59" cy="17" r="3.4" fill="currentColor"/>
         </svg>
-        <div class="sr360-info">
-            <div class="sr360-name" id="sr360-name"></div>
+        <div class="sr360-overlay">
             <div class="sr360-status" id="sr360-status"></div>
+            <div class="sr360-batval" id="sr360-batval"></div>
         </div>
-    </div>
-    <div class="sr360-battery" id="sr360-batrow">
-        <span>Batterie</span>
-        <div class="sr360-batbar"><div class="sr360-batfill" id="sr360-batfill"></div></div>
-        <span class="sr360-batval" id="sr360-batval"></span>
     </div>
     <div class="sr360-btns">
         <button class="sr360-btn start" onclick="requestAction(\'Action\', 0)">
@@ -298,16 +292,9 @@ class Saugroboter360 extends IPSModule
 <script>
     function sr360Render(d) {
         if (!d) { return; }
-        document.getElementById('sr360-name').textContent = d.name || 'Saugroboter';
         document.getElementById('sr360-status').textContent = d.statusText || '';
-        var row = document.getElementById('sr360-batrow');
-        if (d.batteryKnown) {
-            row.style.display = 'flex';
-            document.getElementById('sr360-batfill').style.width = d.battery + '%';
-            document.getElementById('sr360-batval').textContent = d.battery + ' %';
-        } else {
-            row.style.display = 'none';
-        }
+        var bat = document.getElementById('sr360-batval');
+        bat.textContent = d.batteryKnown ? (d.battery + ' %') : '';
     }
     function handleMessage(data) {
         sr360Render(typeof data === 'string' ? JSON.parse(data) : data);
