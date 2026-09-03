@@ -56,9 +56,7 @@ class Saugroboter360 extends IPSModule
         $this->RegisterVariableBoolean('Locate', $this->Translate('Locate robot'), '~Switch', 30);
         $this->EnableAction('Locate');
 
-        // Status variables (read only)
-        $this->RegisterVariableInteger('Status', $this->Translate('Status'), 'SR360.Status', 40);
-        $this->RegisterVariableInteger('Battery', $this->Translate('Battery'), '~Battery.100', 50);
+        // Status variable (read only)
         $this->RegisterVariableBoolean('Online', $this->Translate('Online'), '~Alert.Reversed', 60);
 
         // Enable the custom HTML tile in the tile visualization
@@ -68,6 +66,17 @@ class Saugroboter360 extends IPSModule
     public function ApplyChanges()
     {
         parent::ApplyChanges();
+
+        // Remove the status/battery variables from older versions: the 360 cloud
+        // does not deliver these values via the device list, so they stayed empty.
+        foreach (['Status', 'Battery'] as $ident) {
+            if (@$this->GetIDForIdent($ident)) {
+                $this->UnregisterVariable($ident);
+            }
+        }
+        if (IPS_VariableProfileExists('SR360.Status')) {
+            @IPS_DeleteVariableProfile('SR360.Status');
+        }
 
         $interval = $this->ReadPropertyInteger('UpdateInterval');
         $ok       = ($this->ReadPropertyString('Cookie') !== '') && ($this->ReadPropertyString('Serial') !== '');
@@ -101,7 +110,6 @@ class Saugroboter360 extends IPSModule
                         break;
                 }
                 $this->SetValue('Action', (int) $Value);
-                $this->pushVisualizationValues();
                 break;
 
             case 'FanLevel':
@@ -197,20 +205,6 @@ class Saugroboter360 extends IPSModule
         $online = $this->findValue($device, ['online', 'isOnline', 'connectStatus']);
         $this->SetValue('Online', $online !== null ? ((int) $online === 1) : true);
 
-        // Battery
-        $battery = $this->findValue($device, ['elec', 'battery', 'batteryLevel', 'electricity']);
-        if ($battery !== null) {
-            $this->SetValue('Battery', (int) $battery);
-        }
-
-        // Work / clean state
-        $state = $this->findValue($device, ['workMode', 'mode', 'state', 'workState', 'runState']);
-        if ($state !== null) {
-            $this->SetValue('Status', $this->mapState((string) $state));
-        }
-
-        $this->pushVisualizationValues();
-
         return true;
     }
 
@@ -233,19 +227,10 @@ class Saugroboter360 extends IPSModule
 
     public function GetVisualizationTile()
     {
-        $initial = json_encode($this->getVisualizationPayload());
-
-        $html = '<style>
-    .sr360 { box-sizing: border-box; padding: 16px; font-family: inherit; color: inherit;
-        display: flex; flex-direction: column; align-items: center; }
+        return '<style>
+    .sr360 { box-sizing: border-box; padding: 8px; font-family: inherit; color: inherit; }
     .sr360 * { box-sizing: border-box; }
-    .sr360-robot { position: relative; width: 160px; max-width: 60vw; aspect-ratio: 1 / 1; margin: 4px 0 6px; }
-    .sr360-robot svg { width: 100%; height: 100%; display: block; opacity: 0.9; }
-    .sr360-overlay { position: absolute; inset: 0; display: flex; flex-direction: column;
-        align-items: center; justify-content: center; text-align: center; gap: 4px; padding: 0 12%; }
-    .sr360-status { font-size: 15px; font-weight: 600; line-height: 1.15; }
-    .sr360-batval { font-size: 13px; opacity: 0.75; }
-    .sr360-btns { display: flex; gap: 8px; margin-top: 10px; width: 100%; }
+    .sr360-btns { display: flex; gap: 8px; }
     .sr360-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
         padding: 10px 4px; border: none; border-radius: 10px; cursor: pointer;
         background: rgba(127,127,127,0.15); color: inherit; font: inherit; font-size: 12px;
@@ -258,19 +243,6 @@ class Saugroboter360 extends IPSModule
     .sr360-btn.dock  svg { color: #0a84ff; }
 </style>
 <div class="sr360">
-    <div class="sr360-robot">
-        <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="50" cy="50" r="46" stroke="currentColor" stroke-width="3" opacity="0.85"/>
-            <circle cx="50" cy="50" r="39" stroke="currentColor" stroke-width="1.5" opacity="0.25"/>
-            <circle cx="41" cy="17" r="3.4" fill="currentColor"/>
-            <circle cx="50" cy="16" r="3.4" fill="currentColor"/>
-            <circle cx="59" cy="17" r="3.4" fill="currentColor"/>
-        </svg>
-        <div class="sr360-overlay">
-            <div class="sr360-status" id="sr360-status"></div>
-            <div class="sr360-batval" id="sr360-batval"></div>
-        </div>
-    </div>
     <div class="sr360-btns">
         <button class="sr360-btn start" onclick="requestAction(\'Action\', 0)">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
@@ -286,56 +258,6 @@ class Saugroboter360 extends IPSModule
         </button>
     </div>
 </div>';
-
-        $html .= '<script>var SR360_INITIAL = ' . $initial . ';</script>';
-        $html .= <<<'JS'
-<script>
-    function sr360Render(d) {
-        if (!d) { return; }
-        document.getElementById('sr360-status').textContent = d.statusText || '';
-        var bat = document.getElementById('sr360-batval');
-        bat.textContent = d.batteryKnown ? (d.battery + ' %') : '';
-    }
-    function handleMessage(data) {
-        sr360Render(typeof data === 'string' ? JSON.parse(data) : data);
-    }
-    sr360Render(SR360_INITIAL);
-</script>
-JS;
-
-        return $html;
-    }
-
-    private function pushVisualizationValues(): void
-    {
-        $this->UpdateVisualizationValue(json_encode($this->getVisualizationPayload()));
-    }
-
-    private function getVisualizationPayload(): array
-    {
-        $status  = (int) $this->GetValue('Status');
-        $battery = (int) $this->GetValue('Battery');
-
-        return [
-            'name'         => IPS_GetName($this->InstanceID),
-            'status'       => $status,
-            'statusText'   => $this->getStatusLabel($status),
-            'battery'      => $battery,
-            'batteryKnown' => $battery > 0,
-        ];
-    }
-
-    private function getStatusLabel(int $status): string
-    {
-        $labels = [
-            0 => 'Bereit',
-            1 => 'Reinigt',
-            2 => 'Pausiert',
-            3 => 'Fährt zur Ladestation',
-            4 => 'Aufgeladen',
-            5 => 'Fehler',
-        ];
-        return $labels[$status] ?? 'Unbekannt';
     }
 
     /* ---------------------------------------------------------------------
@@ -465,42 +387,6 @@ JS;
         return null;
     }
 
-    /**
-     * Maps a cloud work-state string to the Status variable value.
-     */
-    private function mapState(string $state): int
-    {
-        $state = strtolower($state);
-        $map   = [
-            'idle'         => 0,
-            'standby'      => 0,
-            'sleep'        => 0,
-            'clean'        => 1,
-            'cleaning'     => 1,
-            'smartclean'   => 1,
-            'work'         => 1,
-            'working'      => 1,
-            'pause'        => 2,
-            'paused'       => 2,
-            'charge'       => 3,
-            'charging'     => 3,
-            'gocharge'     => 3,
-            'backcharge'   => 3,
-            'charged'      => 4,
-            'full'         => 4,
-            'error'        => 5,
-            'fault'        => 5,
-        ];
-
-        foreach ($map as $needle => $value) {
-            if (strpos($state, $needle) !== false) {
-                return $value;
-            }
-        }
-
-        return 0;
-    }
-
     private function registerProfiles(): void
     {
         if (!IPS_VariableProfileExists('SR360.Action')) {
@@ -519,17 +405,6 @@ JS;
             IPS_SetVariableProfileAssociation('SR360.FanLevel', 1, $this->Translate('Auto'), '', -1);
             IPS_SetVariableProfileAssociation('SR360.FanLevel', 2, $this->Translate('Strong'), '', -1);
             IPS_SetVariableProfileAssociation('SR360.FanLevel', 3, $this->Translate('Max'), '', -1);
-        }
-
-        if (!IPS_VariableProfileExists('SR360.Status')) {
-            IPS_CreateVariableProfile('SR360.Status', VARIABLETYPE_INTEGER);
-            IPS_SetVariableProfileIcon('SR360.Status', 'Information');
-            IPS_SetVariableProfileAssociation('SR360.Status', 0, $this->Translate('Idle'), '', -1);
-            IPS_SetVariableProfileAssociation('SR360.Status', 1, $this->Translate('Cleaning'), '', 0x00FF00);
-            IPS_SetVariableProfileAssociation('SR360.Status', 2, $this->Translate('Paused'), '', 0xFFFF00);
-            IPS_SetVariableProfileAssociation('SR360.Status', 3, $this->Translate('Returning to dock'), '', 0x00AAFF);
-            IPS_SetVariableProfileAssociation('SR360.Status', 4, $this->Translate('Charged'), '', 0x00FF00);
-            IPS_SetVariableProfileAssociation('SR360.Status', 5, $this->Translate('Error'), '', 0xFF0000);
         }
     }
 }

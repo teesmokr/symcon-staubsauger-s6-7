@@ -61,17 +61,18 @@ abgefragt – so lässt sich die passende Seriennummer ermitteln.
 | `Action` | Integer | Steuerung: Starten / Pause / Stopp / Laden |
 | `FanLevel` | Integer | Saugstufe (Leise / Auto / Stark / Maximal) |
 | `Locate` | Boolean | Roboter orten |
-| `Status` | Integer | Aktueller Arbeitsstatus |
-| `Battery` | Integer | Batteriestand in % |
 | `Online` | Boolean | Erreichbarkeit des Roboters |
+
+> Hinweis: Arbeitsstatus und Batteriestand werden von der 360 Cloud nicht über
+> die Geräteliste geliefert (nur verschlüsselt per Push) und sind deshalb keine
+> eigenen Variablen.
 
 ## Kachel (Tile-Visualisierung)
 
-Das Modul bringt eine eigene Kachel für die Symcon-Kachelvisualisierung mit
-(HTML-SDK, ab Symcon 7.0). Über die Kachel lässt sich der Roboter direkt
-**starten**, **pausieren** und **zur Ladestation** schicken. Angezeigt werden
-der aktuelle Status und – sofern von der Cloud geliefert – der Batteriestand.
-Alle Beschriftungen sind auf Deutsch.
+Das Modul bringt eine eigene, kompakte Kachel für die
+Symcon-Kachelvisualisierung mit (HTML-SDK, ab Symcon 7.0). Über die Kachel
+lässt sich der Roboter direkt **starten**, **pausieren** und **zur Ladestation**
+schicken. Alle Beschriftungen sind auf Deutsch.
 
 ## PHP-Befehlsreferenz
 
@@ -85,7 +86,7 @@ SR360_Resume(<InstanzID>);              // Fortsetzen
 SR360_GoCharging(<InstanzID>);          // Zur Ladestation
 SR360_Locate(<InstanzID>);              // Roboter orten
 SR360_SetFanLevel(<InstanzID>, 2);      // Saugstufe (0=Leise,1=Auto,2=Stark,3=Max)
-SR360_UpdateStatus(<InstanzID>);        // Status abrufen
+SR360_UpdateStatus(<InstanzID>);        // Online-Status abrufen
 ```
 
 ## Hinweise
@@ -95,6 +96,6 @@ SR360_UpdateStatus(<InstanzID>);        // Status abrufen
   Vorankündigung ändern.
 - Der Cookie kann nach längerer Zeit ablaufen und muss dann erneut hinterlegt
   werden.
-- Der Echtzeit-Status wird von 360 verschlüsselt per Push geliefert. Dieses
-  Modul liest den Status daher über die Geräteliste aus; je nach
-  Firmware/Modell können einzelne Statusfelder abweichen.
+- Der Echtzeit-Status (Arbeitsmodus, Batterie) wird von 360 ausschließlich
+  verschlüsselt per Push geliefert und ist über die Geräteliste nicht abrufbar.
+  Daher zeigt das Modul diese Werte nicht an; die Kachel dient der Steuerung.
