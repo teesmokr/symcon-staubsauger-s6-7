@@ -60,6 +60,9 @@ class Saugroboter360 extends IPSModule
         $this->RegisterVariableInteger('Status', $this->Translate('Status'), 'SR360.Status', 40);
         $this->RegisterVariableInteger('Battery', $this->Translate('Battery'), '~Battery.100', 50);
         $this->RegisterVariableBoolean('Online', $this->Translate('Online'), '~Alert.Reversed', 60);
+
+        // Enable the custom HTML tile in the tile visualization
+        $this->SetVisualizationType(1);
     }
 
     public function ApplyChanges()
@@ -98,6 +101,7 @@ class Saugroboter360 extends IPSModule
                         break;
                 }
                 $this->SetValue('Action', (int) $Value);
+                $this->pushVisualizationValues();
                 break;
 
             case 'FanLevel':
@@ -205,6 +209,8 @@ class Saugroboter360 extends IPSModule
             $this->SetValue('Status', $this->mapState((string) $state));
         }
 
+        $this->pushVisualizationValues();
+
         return true;
     }
 
@@ -219,6 +225,130 @@ class Saugroboter360 extends IPSModule
             return '';
         }
         return $response;
+    }
+
+    /* ---------------------------------------------------------------------
+     * Tile visualization (HTML SDK)
+     * ------------------------------------------------------------------- */
+
+    public function GetVisualizationTile()
+    {
+        $initial = json_encode($this->getVisualizationPayload());
+
+        $html = '<style>
+    .sr360 { box-sizing: border-box; padding: 16px; font-family: inherit; color: inherit; }
+    .sr360 * { box-sizing: border-box; }
+    .sr360-head { display: flex; align-items: center; gap: 12px; }
+    .sr360-icon { width: 46px; height: 46px; flex: 0 0 auto; opacity: 0.9; }
+    .sr360-info { min-width: 0; }
+    .sr360-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sr360-status { font-size: 13px; opacity: 0.75; margin-top: 2px; }
+    .sr360-battery { display: flex; align-items: center; gap: 8px; margin: 14px 0 4px; font-size: 13px; }
+    .sr360-batbar { flex: 1; height: 6px; border-radius: 3px; background: rgba(127,127,127,0.25); overflow: hidden; }
+    .sr360-batfill { height: 100%; width: 0; background: #34c759; transition: width 0.4s ease; }
+    .sr360-batval { min-width: 36px; text-align: right; opacity: 0.85; }
+    .sr360-btns { display: flex; gap: 8px; margin-top: 14px; }
+    .sr360-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+        padding: 10px 4px; border: none; border-radius: 10px; cursor: pointer;
+        background: rgba(127,127,127,0.15); color: inherit; font: inherit; font-size: 12px;
+        transition: background 0.15s ease; }
+    .sr360-btn:hover { background: rgba(127,127,127,0.28); }
+    .sr360-btn:active { transform: translateY(1px); }
+    .sr360-btn svg { width: 22px; height: 22px; }
+    .sr360-btn.start svg { color: #34c759; }
+    .sr360-btn.pause svg { color: #ff9f0a; }
+    .sr360-btn.dock  svg { color: #0a84ff; }
+</style>
+<div class="sr360">
+    <div class="sr360-head">
+        <svg class="sr360-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="24" cy="24" r="21" stroke="currentColor" stroke-width="2.5"/>
+            <circle cx="24" cy="24" r="6" fill="currentColor" opacity="0.35"/>
+            <circle cx="18" cy="14" r="2.2" fill="currentColor"/>
+            <circle cx="24" cy="14" r="2.2" fill="currentColor"/>
+        </svg>
+        <div class="sr360-info">
+            <div class="sr360-name" id="sr360-name"></div>
+            <div class="sr360-status" id="sr360-status"></div>
+        </div>
+    </div>
+    <div class="sr360-battery" id="sr360-batrow">
+        <span>Batterie</span>
+        <div class="sr360-batbar"><div class="sr360-batfill" id="sr360-batfill"></div></div>
+        <span class="sr360-batval" id="sr360-batval"></span>
+    </div>
+    <div class="sr360-btns">
+        <button class="sr360-btn start" onclick="requestAction(\'Action\', 0)">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            Starten
+        </button>
+        <button class="sr360-btn pause" onclick="requestAction(\'Action\', 1)">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z"/></svg>
+            Pause
+        </button>
+        <button class="sr360-btn dock" onclick="requestAction(\'Action\', 3)">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 3 10v11h6v-6h6v6h6V10z"/></svg>
+            Ladestation
+        </button>
+    </div>
+</div>';
+
+        $html .= '<script>var SR360_INITIAL = ' . $initial . ';</script>';
+        $html .= <<<'JS'
+<script>
+    function sr360Render(d) {
+        if (!d) { return; }
+        document.getElementById('sr360-name').textContent = d.name || 'Saugroboter';
+        document.getElementById('sr360-status').textContent = d.statusText || '';
+        var row = document.getElementById('sr360-batrow');
+        if (d.batteryKnown) {
+            row.style.display = 'flex';
+            document.getElementById('sr360-batfill').style.width = d.battery + '%';
+            document.getElementById('sr360-batval').textContent = d.battery + ' %';
+        } else {
+            row.style.display = 'none';
+        }
+    }
+    function handleMessage(data) {
+        sr360Render(typeof data === 'string' ? JSON.parse(data) : data);
+    }
+    sr360Render(SR360_INITIAL);
+</script>
+JS;
+
+        return $html;
+    }
+
+    private function pushVisualizationValues(): void
+    {
+        $this->UpdateVisualizationValue(json_encode($this->getVisualizationPayload()));
+    }
+
+    private function getVisualizationPayload(): array
+    {
+        $status  = (int) $this->GetValue('Status');
+        $battery = (int) $this->GetValue('Battery');
+
+        return [
+            'name'         => IPS_GetName($this->InstanceID),
+            'status'       => $status,
+            'statusText'   => $this->getStatusLabel($status),
+            'battery'      => $battery,
+            'batteryKnown' => $battery > 0,
+        ];
+    }
+
+    private function getStatusLabel(int $status): string
+    {
+        $labels = [
+            0 => 'Bereit',
+            1 => 'Reinigt',
+            2 => 'Pausiert',
+            3 => 'Fährt zur Ladestation',
+            4 => 'Aufgeladen',
+            5 => 'Fehler',
+        ];
+        return $labels[$status] ?? 'Unbekannt';
     }
 
     /* ---------------------------------------------------------------------

@@ -65,6 +65,14 @@ abgefragt – so lässt sich die passende Seriennummer ermitteln.
 | `Battery` | Integer | Batteriestand in % |
 | `Online` | Boolean | Erreichbarkeit des Roboters |
 
+## Kachel (Tile-Visualisierung)
+
+Das Modul bringt eine eigene Kachel für die Symcon-Kachelvisualisierung mit
+(HTML-SDK, ab Symcon 7.0). Über die Kachel lässt sich der Roboter direkt
+**starten**, **pausieren** und **zur Ladestation** schicken. Angezeigt werden
+der aktuelle Status und – sofern von der Cloud geliefert – der Batteriestand.
+Alle Beschriftungen sind auf Deutsch.
+
 ## PHP-Befehlsreferenz
 
 Alle Aktionen lassen sich auch per Skript ausführen (`<InstanzID>` ersetzen):
